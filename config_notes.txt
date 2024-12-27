@@ -1,0 +1,21 @@
+cd PaddleDetection
+
+
+python deploy/pipeline/pipeline.py --config deploy/pipeline/config/examples/infer_cfg_human_attr.yml --video_file="kt-pedestrian-30s.mp4" --device=gpu
+
+python deploy/pipeline/pipeline.py --config deploy/pipeline/config/examples/infer_cfg_vehicle_attr.yml --video_file="kt-vehicle-30s.mp4" --device=gpu
+
+python deploy/pipeline/pipeline.py --config deploy/pipeline/config/examples/infer_cfg_vehicle_plate.yml --video_file="kt-vehicle-30s.mp4" --device=gpu 
+
+
+optional:
+--do_entrance_counting --region_type=horizontal 
+--do_entrance_counting --region_type=vertical 
+--do_entrance_counting --region_type=custom --region_polygon 
+
+--draw_center_traj
+
+
+
+
+

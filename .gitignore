@@ -90,3 +90,9 @@ kernel_meta/
 # MAC
 *.DS_Store
 
+# large mp4 files
+
+# large mp4 files
+
+# large mp4 files
+*.mp4

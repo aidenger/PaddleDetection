@@ -2,7 +2,7 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# You may obtain pedestrian_output_csv copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
 import yaml
 import glob
@@ -19,6 +20,7 @@ import cv2
 import numpy as np
 import math
 import paddle
+import pandas as pd
 import sys
 import copy
 import threading
@@ -30,6 +32,9 @@ try:
     from collections.abc import Sequence
 except Exception:
     from collections import Sequence
+
+sys.path.insert(1, 'Users\Disco\PaddleDetection')
+from intersection import *
 
 # add deploy path of PaddleDetection to sys.path
 parent_path = os.path.abspath(os.path.join(__file__, *(['..'] * 2)))
@@ -65,6 +70,10 @@ from ppvehicle.lane_seg_infer import LaneSegPredictor
 
 from download import auto_download_model
 
+output_csv = []
+output_json = {}
+pedestrian = False
+vehicle = False
 
 class Pipeline(object):
     """
@@ -177,6 +186,7 @@ class Pipeline(object):
 
         else:
             self.predictor.run(self.input)
+            
 
     def run(self):
         if self.multi_camera:
@@ -198,7 +208,7 @@ class Pipeline(object):
 
 def get_model_dir(cfg):
     """ 
-        Auto download inference model if the model_path is a url link. 
+        Auto download inference model if the model_path is pedestrian_output_csv url link. 
         Otherwise it will use the model_path directly.
     """
     for key in cfg.keys():
@@ -696,7 +706,7 @@ class PipePredictor(object):
             if self.region_type == 'horizontal':
                 entrance = [0, height / 2., width, height / 2.]
             elif self.region_type == 'vertical':
-                entrance = [width / 2, 0., width / 2, height]
+                entrance = [width / 4, 0., width / 4, height]
             elif self.region_type == 'custom':
                 entrance = []
                 assert len(
@@ -1107,6 +1117,7 @@ class PipePredictor(object):
         image = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
         mot_res = copy.deepcopy(result.get('mot'))
 
+
         if mot_res is not None:
             ids = mot_res['boxes'][:, 0]
             scores = mot_res['boxes'][:, 2]
@@ -1126,6 +1137,9 @@ class PipePredictor(object):
         online_tlwhs[0] = boxes
         online_scores[0] = scores
         online_ids[0] = ids
+
+
+        output_list = [frame_id]
 
         if mot_res is not None:
             image = plot_tracking_dict(
@@ -1151,6 +1165,13 @@ class PipePredictor(object):
             human_attr_res = human_attr_res['output']
             image = visualize_attr(image, human_attr_res, boxes)
             image = np.array(image)
+            output_list.append(human_attr_res)
+            output_list.append(mot_res['boxes'])
+            output_list.append(len(mot_res['boxes']))
+        else:
+            output_list.append("N/A: human")
+            output_list.append("N/A: human_box")
+            output_list.append(0)
 
         vehicle_attr_res = result.get('vehicle_attr')
         if vehicle_attr_res is not None:
@@ -1158,6 +1179,15 @@ class PipePredictor(object):
             vehicle_attr_res = vehicle_attr_res['output']
             image = visualize_attr(image, vehicle_attr_res, boxes)
             image = np.array(image)
+            vehicle = True
+            output_list.append(vehicle_attr_res)
+            output_list.append(mot_res['boxes'])
+            output_list.append(len(mot_res['boxes']))
+        else:
+            output_list.append("N/A: vehicle")
+            output_list.append("N/A: vehicle_box")
+            output_list.append(0)
+
 
         lanes_res = result.get('lanes')
         if lanes_res is not None:
@@ -1187,6 +1217,15 @@ class PipePredictor(object):
                 boxes = mot_res['boxes'][:, 1:]
                 image = visualize_vehicleplate(image, plates, boxes)
                 image = np.array(image)
+                vehicle = True
+                output_list.append(plates)
+                output_list.append(mot_res['boxes'])
+            else:
+                output_list.append("N/A: vehicle_plate")
+                output_list.append("N/A: vehicle_plate_box")
+        else:
+                output_list.append("N/A: vehicle_plate")
+                output_list.append("N/A: vehicle_plate_box")
 
         kpt_res = result.get('kpt')
         if kpt_res is not None:
@@ -1241,7 +1280,7 @@ class PipePredictor(object):
             image = visualize_action(image, mot_res['boxes'],
                                      visual_helper_for_display,
                                      action_to_display)
-
+        output_csv.append(output_list)
         return image
 
     def visualize_image(self, im_files, images, result):
@@ -1306,6 +1345,16 @@ def main():
     pipeline = Pipeline(FLAGS, cfg)
     # pipeline.run()
     pipeline.run_multithreads()
+    
+    output = pd.DataFrame(output_csv)
+    generate_output_csv(pipeline, output, vehicle)
+    if vehicle:
+        vehicle_csv = pd.read_csv(("output/vehicle ID/vehicle_output.csv"))
+        vehicle_intersection(vehicle_csv)
+    else:
+        pedestrian_csv = pd.read_csv(("output/pedestrian ID/pedestrian_output.csv"))
+        pedestrian_intersection(pedestrian_csv)
+
 
 
 if __name__ == '__main__':

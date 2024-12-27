@@ -1018,7 +1018,9 @@ def load_predictor(model_dir,
             if not os.path.exists(infer_model):
                 raise ValueError(
                     "Cannot find any inference model in dir: {},".format(model_dir))
+        
         config = Config(infer_model, infer_params)
+    # print('\n\n',model_dir ,"\n",  '\n\n', infer_params)
  
     if device == 'GPU':
         # initial GPU memory(M), device ID

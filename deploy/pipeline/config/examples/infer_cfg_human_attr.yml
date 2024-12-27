@@ -11,9 +11,16 @@ MOT:
   model_dir: https://bj.bcebos.com/v1/paddledet/models/pipeline/mot_ppyoloe_l_36e_pipeline.zip
   tracker_config: deploy/pipeline/config/tracker_config.yml
   batch_size: 1
-  enable: True
+  enable: False
 
 ATTR:
   model_dir:  https://bj.bcebos.com/v1/paddledet/models/pipeline/PPLCNet_x1_0_person_attribute_945_infer.zip
   batch_size: 8
-  enable: True
+  enable: False
+
+# VEHICLE_ATTR:
+#   model_dir: https://bj.bcebos.com/v1/paddledet/models/pipeline/vehicle_attribute_model/
+#   batch_size: 8
+#   color_threshold: 0.5
+#   type_threshold: 0.5
+#   enable: True 
